@@ -49,30 +49,33 @@ def register():
 
     return render_template("register.html",do=True)
 
-@app.route("/anasayfa",methods=['GET', 'POST'])
+@app.route("/anasayfa", methods=['GET', 'POST'])
 def ana():
-    if 'username' in session:  # Kullanıcı oturumu kontrolü
+    if 'username' in session:
         if request.method == 'POST':
             phone_number = request.form['phone_number']
-            username = session.get("username")  # Oturumdaki kullanıcı adını al
+            username = session.get("username")
 
             vt = sqlite3.connect('user_dene.db')
             im = vt.cursor()
             im.execute(f"SELECT * FROM users WHERE user_name = ?", (username,))
             user_data = im.fetchone()
-            if user_data:  # Kullanıcı verisi bulunduysa
-                balance = user_data[3]  # Kullanıcının bakiyesini al
-                new_balance = int(balance) - 10  # Bakiyeden düşüş yap
+            
+            if user_data:
+                balance = user_data[3]
+                
+                if int(balance) <= 10:
+                    return "Bakiyeniz yetersiz. İşlem yapmak için bakiyenizi artırın."
+
+                new_balance = int(balance) - 10
                 im.execute("UPDATE users SET balance = ? WHERE user_name = ?", (new_balance, username))
                 vt.commit()
                 sonuc = send(phone_number, 100, 99)
-
-            return render_template('anasayfa.html', phone_number=phone_number, sonuc=sonuc)
+                
+                return render_template('anasayfa.html', phone_number=phone_number, sonuc=sonuc)
     else:
         return redirect('/')
-    if not session.get("username"):
-        return redirect("/")
-
+    
     return render_template("anasayfa.html")
 do = True
 @app.route("/iki")
@@ -176,4 +179,4 @@ def logout():
     return redirect('/')
 
 if __name__=='__main__':
-    app.run(debug=True,host="0.0.0.0")
+    app.run(debug=True)
