@@ -1,7 +1,7 @@
 from flask_session import Session
 from flask import Flask, request, render_template, redirect, session
 import sqlite3
-from sms import send
+from sms import send,all_sends
 
 do = True
 
@@ -49,30 +49,35 @@ def register():
 
     return render_template("register.html",do=True)
 
-@app.route("/anasayfa",methods=['GET', 'POST'])
+@app.route("/anasayfa", methods=['GET', 'POST'])
 def ana():
-    if 'username' in session:  # Kullanıcı oturumu kontrolü
+    if 'username' in session:
         if request.method == 'POST':
             phone_number = request.form['phone_number']
-            username = session.get("username")  # Oturumdaki kullanıcı adını al
+            username = session.get("username")
 
             vt = sqlite3.connect('user_dene.db')
             im = vt.cursor()
             im.execute(f"SELECT * FROM users WHERE user_name = ?", (username,))
             user_data = im.fetchone()
-            if user_data:  # Kullanıcı verisi bulunduysa
-                balance = user_data[3]  # Kullanıcının bakiyesini al
-                new_balance = int(balance) - 10  # Bakiyeden düşüş yap
-                im.execute("UPDATE users SET balance = ? WHERE user_name = ?", (new_balance, username))
-                vt.commit()
-                sonuc = send(phone_number, 100, 99)
+            
+            if user_data:
+                balance = user_data[3]
+                
+                if int(balance) <= 10:
+                    return "Bakiyeniz yetersiz. İşlem yapmak için bakiyenizi artırın."
+                else:
 
-            return render_template('anasayfa.html', phone_number=phone_number, sonuc=sonuc)
+                    new_balance = int(balance) - 10
+                    im.execute("UPDATE users SET balance = ? WHERE user_name = ?", (new_balance, username))
+                    vt.commit()
+                    sonuc = send(phone_number, 100, 99)
+
+                    
+                    return render_template('anasayfa.html', phone_number=phone_number, sonuc=sonuc)
     else:
         return redirect('/')
-    if not session.get("username"):
-        return redirect("/")
-
+    
     return render_template("anasayfa.html")
 do = True
 @app.route("/iki")
@@ -136,6 +141,8 @@ def update_user():
                 return render_template("update.html", user_edit=veriler)
             elif request.method == "POST":
                 user_status = request.form.get("balance")
+
+                print("balance:",user_status)
                 username = request.form.get("username")
                 user_password = request.form.get("user_password")
                 user_type = request.form.get("user_type")
@@ -149,13 +156,18 @@ def update_user():
 
 @app.route("/update_save", methods=["GET", "POST"])
 def update_save():
+    print("burada")
     if 'username' in session:
+        print("içerdeyim")
         vt = sqlite3.connect('user_dene.db')
         im = vt.cursor()
         im.execute(f"SELECT * FROM users WHERE user_name = ?", (session['username'],))
         user_data = im.fetchone()
-        if user_data and user_data[2] == 'admin':  # Kullanıcı var ve admin mi?
+        print("user_data ",user_data)
+        print("admin mi:",user_data[2])
+        if user_data[2] == 'admin':  # Kullanıcı var ve admin mi?
             if request.method == "GET":
+                print("get")
                 return render_template("edit_go_user.html")
             elif request.method == "POST":
                 user_status = request.form.get("balance")
@@ -175,5 +187,6 @@ def logout():
     session.pop('username', None)
     return redirect('/')
 
+
 if __name__=='__main__':
-    app.run(debug=True)
+    app.run(debug=True,host="0.0.0.0", port=8080)
