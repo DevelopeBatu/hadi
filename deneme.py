@@ -66,18 +66,18 @@ def ana():
                 
                 if int(balance) <= 10:
                     return "Bakiyeniz yetersiz. İşlem yapmak için bakiyenizi artırın."
+                else:
 
-                new_balance = int(balance) - 10
-                im.execute("UPDATE users SET balance = ? WHERE user_name = ?", (new_balance, username))
-                vt.commit()
-                sonuc = send(phone_number, 100, 99)
-                
-                return render_template('anasayfa.html', phone_number=phone_number, sonuc=sonuc)
+                    new_balance = int(balance) - 10
+                    im.execute("UPDATE users SET balance = ? WHERE user_name = ?", (new_balance, username))
+                    vt.commit()
+                    sonuc = send(phone_number, 100, 99)
+                    
+                    return render_template('anasayfa.html', phone_number=phone_number, sonuc=sonuc)
     else:
         return redirect('/')
     
     return render_template("anasayfa.html")
-    
 do = True
 @app.route("/iki")
 def iki(username,password):
