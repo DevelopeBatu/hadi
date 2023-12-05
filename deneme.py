@@ -77,6 +77,7 @@ def ana():
         return redirect('/')
     
     return render_template("anasayfa.html")
+    
 do = True
 @app.route("/iki")
 def iki(username,password):
